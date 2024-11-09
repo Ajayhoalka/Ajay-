@@ -13,6 +13,18 @@ bot_busy = False  # Track if the bot is busy with an attack
 remaining_time = 0  # Track remaining time for ongoing attack
 approved_users = {}  # Dictionary to store approved users and their plan expiration
 
+# Function to check and remove expired users
+def check_expired_users():
+    global approved_users
+    current_time = datetime.now()
+    expired_users = [user_id for user_id, user_data in approved_users.items() if user_data['expiry_date'] < current_time]
+    
+    for user_id in expired_users:
+        del approved_users[user_id]
+
+# Check for expired users when bot starts
+check_expired_users()
+
 async def start(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     user_id = update.effective_user.id
@@ -28,12 +40,12 @@ async def start(update: Update, context: CallbackContext):
 
     # Check if the user's plan is expired
     if approved_users[user_id]['expiry_date'] < datetime.now():
+        del approved_users[user_id]  # Remove expired users from approved list
         await context.bot.send_message(
             chat_id=chat_id,
-            text="*❌ Your plan has expired. Please contact @drabbyt to renew your access.*",
+            text="*❌ Your plan has expired. You have been removed from the approved list.*",
             parse_mode='Markdown'
         )
-        del approved_users[user_id]  # Remove expired users from approved list
         return
 
     # Approved user welcome message
@@ -92,12 +104,12 @@ async def attack(update: Update, context: CallbackContext):
 
     # Check if the user's plan is expired
     if approved_users[user_id]['expiry_date'] < datetime.now():
+        del approved_users[user_id]
         await context.bot.send_message(
             chat_id=chat_id,
-            text="*❌ Your plan has expired. Please contact @drabbyt to renew your access.*",
+            text="*❌ Your plan has expired. You have been removed from the approved list.*",
             parse_mode='Markdown'
         )
-        del approved_users[user_id]
         return
 
     # Check if the bot is already busy with an attack
