@@ -12,6 +12,8 @@ bot_access_free = False  # Bot access is restricted
 bot_busy = False  # Track if the bot is busy with an attack
 remaining_time = 0  # Track remaining time for ongoing attack
 approved_users = {}  # Dictionary to store approved users and their plan expiration
+current_attack = None  # Store the process of the ongoing attack
+attack_user = None  # Store the user who initiated the attack
 
 # Function to check and remove expired users
 def check_expired_users():
@@ -57,9 +59,10 @@ async def start(update: Update, context: CallbackContext):
     await context.bot.send_message(chat_id=chat_id, text=message, parse_mode='Markdown')
 
 async def run_attack(chat_id, ip, port, duration, context):
-    global bot_busy, remaining_time
+    global bot_busy, remaining_time, current_attack, attack_user
     bot_busy = True
     remaining_time = int(duration)
+    attack_user = chat_id  # Track who initiated the attack
 
     try:
         process = await asyncio.create_subprocess_shell(
@@ -67,6 +70,8 @@ async def run_attack(chat_id, ip, port, duration, context):
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
+        
+        current_attack = process  # Store the attack process
 
         # Display countdown in remaining_time
         while remaining_time > 0:
@@ -86,10 +91,12 @@ async def run_attack(chat_id, ip, port, duration, context):
     finally:
         bot_busy = False
         remaining_time = 0
+        attack_user = None
+        current_attack = None
         await context.bot.send_message(chat_id=chat_id, text="*✅ Attack Completed! ✅*\n*Thank you for using our service!*", parse_mode='Markdown')
 
 async def attack(update: Update, context: CallbackContext):
-    global bot_busy, remaining_time
+    global bot_busy, remaining_time, attack_user
     chat_id = update.effective_chat.id
     user_id = update.effective_user.id
 
@@ -135,6 +142,29 @@ async def attack(update: Update, context: CallbackContext):
     ), parse_mode='Markdown')
 
     asyncio.create_task(run_attack(chat_id, ip, port, duration, context))
+
+async def stop_attack(update: Update, context: CallbackContext):
+    global bot_busy, attack_user, current_attack
+
+    chat_id = update.effective_chat.id
+
+    # Check if there's an ongoing attack
+    if current_attack is None:
+        await context.bot.send_message(chat_id=chat_id, text="*⚠️ No attack is currently running.*", parse_mode='Markdown')
+        return
+
+    # Check if the user is the one who started the attack
+    if chat_id != attack_user:
+        await context.bot.send_message(chat_id=chat_id, text="*❌ You can only stop your own attack.*", parse_mode='Markdown')
+        return
+
+    # Stop the attack
+    current_attack.terminate()  # Terminate the attack process
+    current_attack = None
+    attack_user = None
+    bot_busy = False
+
+    await context.bot.send_message(chat_id=chat_id, text="*🛑 Attack has been stopped successfully.*", parse_mode='Markdown')
 
 async def approve(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
@@ -189,6 +219,7 @@ def main():
     application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("attack", attack))
+    application.add_handler(CommandHandler("stop_attack", stop_attack))  # Stop attack handler
     application.add_handler(CommandHandler("approve", approve))
     application.add_handler(CommandHandler("disapprove", disapprove))
 
