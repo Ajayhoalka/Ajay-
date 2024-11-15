@@ -350,16 +350,28 @@ def start_attack(chat_id, target_ip, target_port, duration):
                                    reply_markup=create_inline_keyboard(), parse_mode='Markdown')
         return
 
-    # Start the attack for the given chat_id
-    ongoing_attacks[chat_id] = {
-        'target_ip': target_ip,
-        'target_port': target_port,
-        'duration': duration,
-        'start_time': time.time()  # Record when the attack starts
-    }
-    
-    # You can launch the attack here, assuming attack() is your attack function
-    attack(target_ip, target_port, duration)
+import threading
+
+# Function to handle the attack process in a separate thread
+def handle_attack(chat_id, target):
+    # Add your attack logic here
+    bot.send_message(chat_id, f"Starting attack on {target}...")
+    bot.attack(target)  # Replace this with your actual attack function
+    bot.send_message(chat_id, f"Attack on {target} is complete.")
+
+# Function to start a new attack
+def start_attack(chat_id, target):
+    # Start a new thread for each attack so it can run concurrently
+    attack_thread = threading.Thread(target=handle_attack, args=(chat_id, target))
+    attack_thread.start()
+
+    # Inform the user that the attack has started
+    bot.send_message(chat_id, f"Your attack on {target} is now in progress.")
+
+# Example usage:
+# start_attack(chat_id, 'target1')
+# start_attack(chat_id, 'target2')
+
 
     # Inform the user that the attack is starting
     bot.send_message(chat_id, "*💣 Ready to launch an attack!*\n"
