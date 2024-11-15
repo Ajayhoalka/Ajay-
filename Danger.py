@@ -592,10 +592,7 @@ def help_command(message):
                  "4. *`/when` - ⏳ Curious about the bot's status? Find out now!*\n"
                  "5. *`/canary` - 🦅 Grab the latest Canary version for cutting-edge features.*\n"
                  "6. *`/rules` - 📜 Review the rules to keep the game fair and fun.*\n\n"
-                
-        
-
-    try:
+                 
         bot.send_message(message.chat.id, help_text, reply_markup=create_inline_keyboard(), parse_mode='Markdown')
     except Exception as e:
         print(f"Error while processing /help command: {e}")
