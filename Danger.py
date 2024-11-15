@@ -592,7 +592,7 @@ def help_command(message):
                  "4. *`/when` - ⏳ Curious about the bot's status? Find out now!*\n"
                  "5. *`/canary` - 🦅 Grab the latest Canary version for cutting-edge features.*\n"
                  "6. *`/rules` - 📜 Review the rules to keep the game fair and fun.*\n\n"
-                 "*💡 Got questions? Don't hesitate to ask! Your satisfaction is our priority!* 
+                
             "7. *`/buy` - 🤑 You can Use this Command For Buy A Premium Access*\n"     ")
 
     try:
